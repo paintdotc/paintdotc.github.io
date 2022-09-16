@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="style.css">
+    <script src="classes.js"></script>
+</head>
+
+<body>
+    <h1 id="Website">PAINT.C</h1>
+    <h2 id="Title" contenteditable="true" data-text="ENTER TITLE"></h2>
+    <h2 id="rating1">5</h2>
+    <h2 id="rating2">5</h2>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const width = 10; // boxes
+        const height = 10; // boxes
+        const boxSize = 45; // px
+        const padding = 20; // px
+        const pixels = {};
+
+        let ctx;
+
+        let color1 = new Color4(255, 255, 255, 1);
+        let color2 = new Color4(0, 0, 0, 1);
+        var selectionColor = new Color4(255, 0, 0);
+
+        for (let i = 0; i < height; i++) {
+            pixels[i] = {}
+        }
+        const mousePosition = {
+            x: 0, y: 0
+        }
+        let mouseDown = false;
+        onmousemove = function (e) {
+            mousePosition.x = e.clientX;
+            mousePosition.y = e.clientY;
+        }
+        document.addEventListener('click', click);
+        document.addEventListener('keypress', function (e) {
+            switch (e.key) {
+                case "x":
+                    switchColors();
+                    break;
+                default:
+                    Object.entries(tools).forEach(([i, v]) => {
+                        if (e.key == v.keybind) {
+                            activeTool = i;
+                        }
+                    });
+                    break;
+            }
+        });
+        onmousedown = function (e) {
+            mouseDown = true;
+        }
+        onmouseup = function (e) {
+            mouseDown = false;
+        }
+
+        const canvas = document.getElementById("canvas")
+        const originalWidth = canvas.width;
+        const originalHeight = canvas.height;
+
+        const colors = {
+            background: new Color4(28, 36, 74),
+            transparencyEven: new Color4(221, 221, 221),
+            transparencyOdd: new Color4(128, 128, 128),
+            colorHoverFull: new Color4(0, 0, 0, 0.1),
+            colorHover: new Color4(0, 0, 0, 0.3),
+            palleteBlack: new Color4(15, 16, 37),
+            palleteRed: new Color4(235, 25, 64),
+            palleteYellow: new Color4(235, 218, 162),
+            default1: new Color4(255, 255, 255),
+            default2: new Color4(0, 0, 0),
+        }
+
+
+        const border = new Sprite("/cdn/border.png", 0, 0, 100, 100);
+        const borderWide = new Sprite("/cdn/borderwide.png", 0, 0, 100, 100);
+        let activeTool = "select";
+        const tools = {
+            select: {
+                sprite: new Sprite("/cdn/select.png", 0, 0, 100, 100),
+                keybind: "v",
+                offset: "0 0"
+            },
+            marquee: {
+                sprite: new Sprite("/cdn/marquee.png", 0, 0, 100, 100),
+                keybind: "m",
+                offset: "0 0"
+            },
+            paintbrush: {
+                sprite: new Sprite("/cdn/paintbrush.png", 0, 0, 100, 100),
+                keybind: "b",
+                offset: "-50 50"
+            },
+            fill: {
+                sprite: new Sprite("/cdn/fill.png", 0, 0, 100, 100),
+                keybind: "g",
+                offset: "0 0"
+            },
+            eraser: {
+                sprite: new Sprite("/cdn/eraser.png", 0, 0, 100, 100),
+                keybind: "e",
+                offset: "-50 50"
+            },
+            eyedropper: {
+                sprite: new Sprite("/cdn/eyedropper.png", 0, 0, 100, 100),
+                keybind: "i",
+                offset: "-50 50"
+            },
+        }
+        const icons = {
+            star: {
+                sprite: new Sprite("/cdn/star.png", 0, 0, 50, 50)
+            },
+        }
+        const buttons = {
+            arrowLeft: {
+                sprite: new Sprite("cdn/arrowleft.png", 0, 0, 100, 100)
+            },
+            arrowRight: {
+                sprite: new Sprite("cdn/arrowright.png", 0, 0, 100, 100)
+            },
+            arrows: {
+                sprite: new Sprite("/cdn/switch.png", 0, 0, 46, 46)
+            },
+            colorslider: {
+                x: 0, y: 0, w: 0, h: 0,
+            },
+            colorpicker: {
+                x: 0, y: 0, w: 0, h: 0,
+            }
+        }
+
+        const rect = {
+            displayBox: new Rect(colors.palleteBlack, 0, 20, 125, 125)
+        }
+
+        function start() {
+            buttons.arrows.sprite.onClick(switchColors)
+
+            Object.entries(tools).forEach(([i, v]) => {
+                var s = v.sprite;
+                s.onClick(function () {
+                    activeTool = i;
+                })
+            });
+        }
+
+        start();
+
+        function update() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            ctx = canvas.getContext('2d')
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = colors.background.colorString;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            renderTools(ctx);
+            renderPixels(ctx);
+            renderColorPicker(ctx);
+            renderFeatured(ctx);
+
+            requestAnimationFrame(update)
+        }
+
+        function click(e) {
+            var x = e.clientX;
+            var y = e.clientY;
+            Object.entries(buttons).forEach(([i, v]) => {
+                var x = mousePosition.x;
+                var y = mousePosition.y;
+                if (v.sprite) {
+                    var s = v.sprite;
+                    if (x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h) {
+
+                    }
+                } else if (i == "colorpicker") {
+                    if (x >= v.x && x <= v.x + v.w && y >= v.y && y <= v.y + v.h) {
+                        var imageData = ctx.getImageData(x, y, 1, 1).data;
+                        color1.r = imageData[0];
+                        color1.g = imageData[1];
+                        color1.b = imageData[2];
+                    }
+                } else if (i == "colorslider") {
+                    if (x >= v.x && x <= v.x + v.w && y >= v.y && y <= v.y + v.h) {
+                        var imageData = ctx.getImageData(x, y, 1, 1).data;
+                        selectionColor.r = imageData[0];
+                        selectionColor.g = imageData[1];
+                        selectionColor.b = imageData[2];
+                    }
+                }
+            });
+        }
+
+        function renderFeatured() {
+            var al = buttons.arrowLeft.sprite
+            ctx.drawImage(al.img, window.innerWidth - 500, 30, al.w, al.h)
+            var ar = buttons.arrowRight.sprite
+            ctx.drawImage(ar.img, window.innerWidth - 100, 30, ar.w, ar.h)
+            ctx.fillStyle = colors.palleteBlack.colorString;
+            rect.displayBox.render(ctx, window.innerWidth - 395)
+            rect.displayBox.render(ctx, window.innerWidth - 230)
+
+            var st = icons.star.sprite
+            ctx.drawImage(st.img, window.innerWidth - 170, 153, st.w, st.h)
+            ctx.drawImage(st.img, window.innerWidth - 340, 153, st.w, st.h)
+        }
+
+        function renderColorPicker(ctx) {
+            var lastTool = Object.keys(tools)
+            lastTool = tools[lastTool[lastTool.length - 1]]
+
+            var w = 60;
+            var y = lastTool.sprite.y + 20 + lastTool.sprite.w;
+
+            ctx.fillStyle = color2.colorString;
+            ctx.fillRect(25 + w / 2, y + 5 + w / 2, w - 10, w - 10)
+            ctx.drawImage(border.img, 20 + w / 2, y + w / 2, w, w)
+
+            ctx.fillStyle = color1.colorString;
+            ctx.fillRect(20 + 5, y + 5, w - 10, w - 10);
+            ctx.drawImage(border.img, 20, y, w, w);
+
+            var arrows = buttons.arrows.sprite;
+            arrows.render(ctx);
+            arrows.x = 25 + w * 1;
+            arrows.y = y - 10;
+            arrows.w = w / 1.75;
+            arrows.h = w / 1.75;
+
+            // Color border
+            ctx.drawImage(borderWide.img, 20, 20 + y + w * 1.5, 300, 300);
+            var gradientStart = 46 + y + w * 1.5;
+
+            // Color box
+            ctx.fillStyle = selectionColor.colorString;
+            ctx.fillRect(46, gradientStart, 180, 188);
+
+            var whiteFade = ctx.createLinearGradient(46, 0, 46 + 180, 0);
+            whiteFade.addColorStop(0, new Color4(255, 255, 255, 1).colorString);
+            whiteFade.addColorStop(1, new Color4(255, 255, 255, 0).colorString);
+            ctx.fillStyle = whiteFade;
+            ctx.fillRect(46, gradientStart, 180, 188);
+
+            var blackFade = ctx.createLinearGradient(0, gradientStart, 0, gradientStart + 188);
+            blackFade.addColorStop(0, new Color4(0, 0, 0, 0).colorString);
+            blackFade.addColorStop(1, new Color4(0, 0, 0, 1).colorString);
+            ctx.fillStyle = blackFade;
+            ctx.fillRect(46, gradientStart, 180, 188);
+
+            // Color Strip
+            var gradientH = ctx.createLinearGradient(0, gradientStart, 0, gradientStart + 188);
+            gradientH.addColorStop(0, "rgb(255, 0, 0)");
+            gradientH.addColorStop(1 / 6, "rgb(255, 255, 0)");
+            gradientH.addColorStop(2 / 6, "rgb(0, 255, 0)");
+            gradientH.addColorStop(3 / 6, "rgb(0, 255, 255)");
+            gradientH.addColorStop(4 / 6, "rgb(0, 0, 255)");
+            gradientH.addColorStop(5 / 6, "rgb(255, 0, 255)");
+            gradientH.addColorStop(6 / 6, "rgb(255, 0, 0)");
+            ctx.fillStyle = gradientH;
+            ctx.fillRect(251, gradientStart, 43, 188);
+
+            buttons.colorslider.x = 251;
+            buttons.colorslider.y = gradientStart;
+            buttons.colorslider.w = 43;
+            buttons.colorslider.h = 188;
+
+            buttons.colorpicker.x = 46;
+            buttons.colorpicker.y = gradientStart;
+            buttons.colorpicker.w = 180;
+            buttons.colorpicker.h = 188;
+
+        }
+
+        function renderTools(ctx) {
+            var yOffset = 0;
+            var n = 0;
+            var hoveringTool = undefined;
+            Object.entries(tools).forEach(([i, v]) => {
+                n++;
+
+                var sprite = v.sprite;
+                var xOffset = 0;
+
+                if (n != 1 && !(n % 2 == 0)) {
+                    yOffset += 120
+                } else if (n % 2 == 0) {
+                    xOffset += 120
+                }
+
+                var x = 20 + xOffset;
+                var y = 200 + yOffset;
+                var w = sprite.w;
+                var h = sprite.h;
+
+                if (activeTool == i) {
+                    ctx.fillStyle = new Color4(0, 0, 0, 0.4).colorString;
+                    ctx.fillRect(x + 5, y + 5, w - 10, h - 10);
+                }
+
+                if (mousePosition.x >= x && mousePosition.x <= x + w
+                    && mousePosition.y >= y && mousePosition.y <= y + h) {
+                    hoveringTool = i;
+                    if (activeTool != i) {
+                        ctx.fillStyle = new Color4(0, 0, 0, 0.2).colorString;
+                        ctx.fillRect(x + 5, y + 5, w - 10, h - 10);
+                    }
+                }
+
+                ctx.drawImage(sprite.img, x, y, w, h)
+                ctx.drawImage(border.img, x, y, w, h)
+                v.sprite.x = x;
+                v.sprite.y = y;
+                v.sprite.w = w;
+                v.sprite.h = h;
+            });
+
+            if (hoveringTool != undefined && hoveringTool != activeTool) {
+                document.body.style.cursor = "url('cdn/pointer.png'), auto";
+                if (mouseDown == true)
+                    document.body.style.cursor = "url('cdn/grab.png'), auto";
+            } else {
+                document.body.style.cursor = "url('cdn/cursor.png'), auto";
+                if (activeTool) {
+                    var data = tools[activeTool];
+                    document.body.style.cursor =
+                        `url('${data.sprite.src.replace("cdn/", "cdn/mouse/")}') ${data.offset}, auto`;
+                }
+            }
+        }
+
+        function switchColors() {
+            [color1, color2] = [color2, color1];
+        }
+
+        function renderPixels(ctx) {
+            var bpadding = 38
+            var fpadding = padding + bpadding;
+            var bx = window.innerWidth - boxSize - fpadding - bpadding - ((width - 1) * boxSize);
+            var by = window.innerHeight - boxSize - fpadding - bpadding - ((height - 1) * boxSize);
+            var bw = bpadding * 2 + (width) * boxSize
+            var bh = bpadding * 2 + (height) * boxSize
+            ctx.drawImage(border.img, bx, by, bw, bh)
+
+            var fx;
+            var fy;
+            for (var i = 0; i < height; i++) {
+                for (var i2 = 0; i2 < width; i2++) {
+                    var color;
+                    var hovering = false;
+                    if (i == 0 || i % 2 == 0) {
+                        color = (i2 % 2) && colors.transparencyEven || colors.transparencyOdd
+                    } else {
+                        color = (i2 % 2) && colors.transparencyOdd || colors.transparencyEven
+                    }
+                    var x = window.innerWidth - boxSize - fpadding - (i2 * boxSize)
+                    var y = window.innerHeight - boxSize - fpadding - (i * boxSize)
+                    if (mousePosition.x >= x && mousePosition.x < x + boxSize) {
+                        if (mousePosition.y >= y && mousePosition.y < y + boxSize) {
+                            hovering = true;
+                            if (mouseDown == true) {
+                                //Paintbrush
+                                if (activeTool == "paintbrush") {
+                                    pixels[i][i2] = clone(color1)
+                                } else if (activeTool == "eraser") {
+                                    pixels[i][i2] = null;
+                                }
+                            }
+                        }
+                    }
+                    if (pixels[i][i2]) {
+                        color = pixels[i][i2];
+                    }
+                    ctx.fillStyle = color.colorString;
+                    ctx.fillRect(x, y, boxSize, boxSize)
+                    if (hovering == true) {
+                        ctx.fillStyle = colors.colorHover.colorString;
+                        ctx.fillRect(x, y, boxSize, boxSize)
+                    }
+                    fx = x;
+                    fy = y;
+                }
+            }
+
+            var fh = document.getElementById("Title").clientHeight;
+            document.getElementById("Title").style.top = (fy - bpadding - fh) + "px"
+            document.getElementById("Title").style.left = fx + "px"
+        }
+
+        update()
+    </script>
+</body>
+
+</html>
