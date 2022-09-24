@@ -3,56 +3,10 @@ body {
     overflow: hidden;
 }
 
-h1,
-h2,
-h3 {
-    position: absolute;
-    margin: 0;
-    top: 20px;
-    left: 20px;
-    font-family: Daydream;
-    text-rendering: geometricPrecision;
-    font-size: min(max(4vw, 48px), 60px);
-    color: rgb(235, 218, 162);
-    text-shadow: 4px 4px rgb(15, 16, 37), -2px -2px rgb(235, 25, 64);
+#imgCanvas {
+    display: none;
 }
 
-h1::selection,
-h2::selection,
-h3::selection {
-    color: rgb(15, 16, 37);
-    background-color: rgb(235, 25, 64);
-    text-shadow: 2px 2px rgb(235, 25, 64), -2px -2px rgb(235, 218, 162);
-}
-
-h2 {
-    font-size: min(max(3.5vw, 40px), 52px);
-}
-
-[contentEditable=true]:empty:before {
-    content: attr(data-text);
-    opacity: 0.5;
-}
-
-#Website {
-    width: 50%;
-}
-
-#rating1 {
-    left: auto;
-    top: 158px;
-    right: 175px;
-    font-size: min(max(3vw, 32px), 48px);
-}
-
-#rating2 {
-    left: auto;
-    top: 158px;
-    right: 345px;
-    font-size: min(max(3vw, 32px), 48px);
-}
-
-@font-face {
-    font-family: Daydream;
-    src: url(font/daydream.woff);
+#cCanvas {
+    display: none;
 }
