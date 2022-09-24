@@ -63,3 +63,32 @@ function fill(Class, color, b, b2) {
     }
 
 }
+
+function save(sCanvas) {
+    if (sCanvas instanceof Canvas) {
+        var scanvas = document.createElement('CANVAS');
+        var sctx = scanvas.getContext('2d');
+        var dataURL;
+        scanvas.height = height * 10;
+        scanvas.width = width * 10;
+        for (var i = 0; i < height; i++) {
+            for (var i2 = 0; i2 < width; i2++) {
+                sctx.fillStyle = sCanvas.pixels[i][i2].BackgroundColor.colorString
+                sctx.fillRect(i2 * 10, i * 10, 10, 10);
+            }
+        }
+        dataURL = scanvas.toDataURL();
+        console.log(dataURL);
+        saveBase64AsFile(dataURL, "drawing.png");
+    }
+}
+
+function saveBase64AsFile(base64, fileName) {
+    var link = document.createElement("a");
+
+    document.body.appendChild(link); // for Firefox
+
+    link.setAttribute("href", base64);
+    link.setAttribute("download", fileName);
+    link.click();
+}
